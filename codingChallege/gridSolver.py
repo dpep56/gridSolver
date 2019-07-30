@@ -11,8 +11,7 @@ class rangeData:
         self.r = np.genfromtxt(path + "ranges.csv", delimiter=',').astype(float)
         self.beacons = np.genfromtxt(path + "beacons.csv", delimiter=',').astype(float)
 
-    def dGrid(self):
-        # setup distance grid indicies
+        # setup distance grid indices
         self.dgrid = np.indices((self.grid.shape[0] - 1, self.grid.shape[1] - 1)) + 0.5
         self.dgridz = np.ones((self.grid.shape[0] - 1, self.grid.shape[1] - 1)) * 1.35
 
@@ -25,7 +24,7 @@ class rangeData:
                                                                            2) + np.power(
                     self.dgridz - self.beacons[x][2], 2)))
 
-    def rangeGrid(self):
+    def range_grid(self):
         # arrange range data into sets
         # initialize array first 4 readings
         self.rangeSets = np.empty((1, 4))
@@ -61,7 +60,7 @@ class rangeData:
             self.rangeSets = np.delete(self.rangeSets, int(x[0]), 0)
             self.timeCheck = np.delete(self.timeCheck, int(x[0]), 0)
 
-    def local(self, z):
+    def multi_process(self, z):
         # initialize dr matrix
         dr = np.zeros([self.d.shape[0], self.d.shape[1]])
         for x in range(self.d.shape[1]):
@@ -75,23 +74,26 @@ class rangeData:
             dataOut = []
         return dataOut
 
+    def localize(self):
+        pool = multiprocessing.Pool()
+        dataOut = pool.map(data.multi_process, range(data.rangeSets.shape[0]))
+        pool.close()
+        # print(dataOut)
+
+        dataOut2 = [x for x in dataOut if x != []]
+        print(dataOut2)
+        with open(path + 'outFile.csv', 'w', newline="") as myfile:
+            wr = csv.writer(myfile)
+            wr.writerows(dataOut2)
+
+
 if __name__ == '__main__':
     path = os.getcwd() + "/codingChallege/"
     data = rangeData(path)
-    data.dGrid()
-    data.rangeGrid()
+    data.range_grid()
+    data.localize()
 
-    pool = multiprocessing.Pool()
-    dataOut = pool.map(data.local, range(data.rangeSets.shape[0]))
-    pool.close()
-    #print(dataOut)
 
-    dataOut2 = [x for x in dataOut if x != []]
-    #print(dataOut2)
-
-    with open(path+'outFile.csv', 'w', newline="") as myfile:
-        wr = csv.writer(myfile)
-        wr.writerows(dataOut2)
 
 
 
